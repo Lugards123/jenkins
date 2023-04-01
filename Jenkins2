@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Install Java and Jenkins
+sudo apt update
+sudo apt install default-jre -y
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+sudo apt update
+sudo apt install jenkins -y
+
+# Install Maven
+sudo apt install maven -y
+
+# Install Docker
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+sudo usermod -aG docker $USER
+
+# Install SonarQube
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+sudo -u postgres psql -c "CREATE USER sonar WITH ENCRYPTED PASSWORD 'sonar';"
+sudo -u postgres createdb -O sonar sonar
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.0.43852.zip
+sudo apt install -y unzip
+unzip sonarqube-8.9.0.43852.zip
+sudo mv sonarqube-8.9.0.43852 /opt/sonarqube
+sudo sed -i '/#sonar.jdbc.username=/s/^#//g' /opt/sonarqube/conf/sonar.properties
+sudo sed -i '/#sonar.jdbc.password=/s/^#//g' /opt/sonarqube/conf/sonar.properties
+sudo sed -i '/#sonar.jdbc.url=jdbc:postgresql/s/^#//g' /opt/sonarqube/conf/sonar.properties
+sudo sed -i 's/jdbc:postgresql:\/\/localhost\/sonar/jdbc:postgresql:\/\/localhost\/sonar?currentSchema=public/g' /opt/sonarqube/conf/sonar.properties
+sudo sed -i 's/#sonar.web.context=/sonarqube/g' /opt/sonarqube/conf/sonar.properties
+sudo chown -R $USER:$USER /opt/sonarqube/
+sudo /opt/sonarqube/bin/linux-x86-64/sonar.sh start
+
+# Install Kubernetes
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl
+curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt update
+sudo apt install -y kubectl kubelet kubeadm
+
+# Install Terraform
+sudo apt update
+sudo apt install -y unzip
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https
